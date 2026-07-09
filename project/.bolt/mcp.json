@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "avalanche_mcp": {
+      "enabled": false
+    }
+  }
+}
