@@ -1,108 +1,118 @@
-# NexPay - Cross-border Stablecoin Remittance on Avalanche
+# NexPay - Cross-Border Stablecoin Remittance Platform
 
-## Hackathon Demo - Avalanche Fuji Testnet
-
-> "Send money like a text - instant, near-free."
+NexPay is a high-performance cross-border stablecoin remittance solution built on the **Avalanche Fuji Testnet**. Designed with a "send money like a text" philosophy, NexPay provides instantaneous, low-fee remittance and compliance-categorized transfers for global users. This repository contains the complete hackathon prototype, showcasing end-to-end flows from user wallets, compliance-gated smart contracts, and backend relayer architectures to the web and mobile frontends.
 
 ---
 
-## Architecture
+## 🚀 Public Use Cases
+
+NexPay supports three key global payment scenarios, each accompanied by compliance-tracking metadata recorded directly on-chain:
+
+1. **Personal Remittance**: Enables overseas workers to send funds home instantly to family and friends with near-zero transaction fees.
+2. **Business Payments**: Streamlines B2B invoicing, enabling freelancers and international contractors to receive payments securely.
+3. **Wallet Transfers**: Facilitates standard peer-to-peer wallet transfers with minimal friction.
+4. **Fiat Off-Ramp / Cash Out**: Integrates a mock bank cashout mechanism that simulates traditional banking system settlements triggered by on-chain events.
+
+---
+
+## 🛠 Tech Stack & Architecture
+
+NexPay is built using a modern, scalable web3 architecture designed to abstract away blockchain complexity:
+
+* **Blockchain & Smart Contracts**:
+  * Network: **Avalanche C-Chain (Fuji Testnet)** (Chain ID `43113`)
+  * Smart Contract: Solidity (v0.8.20, optimized without external dependencies)
+  * Primary Stablecoin: USDC (Fuji Testnet Contract: `0x5425890298aed601595a70AB815c96711a31Bc65`)
+* **Backend API & Relayer**:
+  * Infrastructure: Supabase Edge Functions (Deno Runtime)
+  * Web3 Library: `ethers.js` (v6)
+  * Database: Supabase (PostgreSQL with Row-Level Security for transaction indexing)
+* **Frontend Clients**:
+  * **Web Client**: React + Vite + TypeScript (fully-featured web dashboard)
+  * **Mobile Client**: Flutter Material 3 (located in the `frontend/` directory)
+
+---
+
+## 📋 Architecture & Flow
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Frontend (React/Vite + Flutter)                    │
-│  - Home: balance + wallet selector                  │
-│  - Send: address, amount, category dropdown         │
-│  - Cashout: mock bank form                          │
-│  - Activity: full transaction feed                  │
+│              Frontend Clients                       │
+│  - Web: React/Vite Dashboard                        │
+│  - Mobile: Flutter Material 3                       │
 └──────────────────┬──────────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────────┐
-│  Supabase Edge Function (Deno/ethers v6)             │
-│  /kyc/verify  /onramp  /transfer                    │
-│  /cashout     /transfers/:addr  /balance/:addr      │
+│         Supabase Edge Functions                     │
+│  - Deno & ethers v6 Backend Routing                 │
+│  - Relayer gas funding & compliance checks          │
 └──────────────────┬──────────────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────────────┐
-│  NexPay.sol (Solidity 0.8.20)                       │
-│  Avalanche Fuji C-Chain                              │
-│  USDC: 0x5425890298aed601595a70AB815c96711a31Bc65   │
+│         Avalanche Fuji Testnet                      │
+│  - NexPay Solidity Smart Contract                   │
+│  - USDC token interactions                          │
 └─────────────────────────────────────────────────────┘
 ```
 
-## Demo Flow
+### End-to-End Demo Flow
 
-1. **Select wallet** (Alice, Bob, or Carol - all pre-seeded with 100 USDC)
-2. **Verify KYC** for any unverified wallet (button on home screen)
-3. **Tap "Send Instantly"** - select recipient, amount, category
-4. **Confirm transfer** - sent on-chain in ~1 second
-5. **View Activity** - see category tag (PersonalRemittance / BusinessPayment / WalletTransfer) on every TX
-6. **Cash Out to Bank** - mock fiat off-ramp via partner abstraction
+1. **Wallet Selection**: Select from pre-configured demo wallets (each pre-seeded with mock USDC).
+2. **Compliance Verification (KYC)**: Simulate identity verification via a compliance gate button on the dashboard.
+3. **Instant Remittance**: Send USDC instantly to any recipient with a designated compliance category (e.g., Personal Remittance, Business Payment, Wallet Transfer).
+4. **On-Chain Confirmation**: Experience sub-second transactional finality on the Avalanche C-Chain.
+5. **Activity Feed**: Review the transaction details, including on-chain compliance tags, in the live ledger.
+6. **Fiat Cashout**: Simulate bank cashout requests via partner off-ramp abstraction.
 
-## Deploying the Smart Contract
+---
 
-The demo runs in simulation mode by default. To go fully live on-chain:
+## 💻 API Reference
 
-```bash
-# 1. Generate a relayer wallet
-cd deploy
-node compile-deploy.mjs
-
-# 2. Fund the generated address at https://faucet.avax.network/
-# Select "Fuji" testnet, paste the address
-
-# 3. Deploy
-node compile-deploy.mjs <PRIVATE_KEY>
-
-# 4. Add secrets to Supabase edge function:
-# NEXPAY_CONTRACT_ADDRESS=<deployed address>
-# RELAYER_PRIVATE_KEY=<private key>
-```
-
-## Contract Functions
-
-```solidity
-// Instant USDC transfer with compliance category on-chain
-transferInstant(address to, uint256 amount, uint8 category, string memo)
-// 0=PersonalRemittance, 1=BusinessPayment, 2=WalletTransfer
-
-// Lock USDC, emit CashoutRequested for off-chain partner
-requestCashout(uint256 amount, string bankRef, uint8 category)
-
-// Owner-only KYC gate
-setKYC(address, bool)
-```
-
-## API Endpoints
+The backend API layer exposes several endpoints facilitating wallet and transaction management:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Service health + mode |
-| `/wallets` | GET | List demo wallets |
-| `/balance/:addr` | GET | USDC + AVAX balance |
-| `/transfers/:addr` | GET | Full transaction history |
-| `/seed` | POST | Create 3 demo wallets |
-| `/kyc/verify` | POST | KYC gate wallet |
-| `/onramp` | POST | Mock fiat → USDC |
-| `/transfer` | POST | Instant wallet transfer |
-| `/cashout` | POST | Bank cashout request |
+| `/health` | GET | Check service health and current operations mode (simulation or live) |
+| `/wallets` | GET | List demo wallets and statuses |
+| `/balance/:address` | GET | Fetch the specified wallet's USDC and AVAX balances |
+| `/transfers/:address` | GET | Fetch transaction and cashout histories |
+| `/seed` | POST | Generate and pre-seed mock demo wallets |
+| `/kyc/verify` | POST | Verify KYC status for a wallet address |
+| `/onramp` | POST | Simulate fiat-to-USDC on-ramping |
+| `/transfer` | POST | Process an instant compliance-categorized USDC transfer |
+| `/cashout` | POST | Process a mock bank cashout request |
 
-## Compliance Categories
+---
 
-Every transaction carries a compliance tag on-chain:
+## 🔧 Deployment and Setup
 
-| Code | Label | Use Case |
-|------|-------|----------|
-| 0 | PersonalRemittance | Overseas worker sending home |
-| 1 | BusinessPayment | Freelancer invoice payment |
-| 2 | WalletTransfer | Pure wallet-to-wallet |
+The application is built to run in **Simulation Mode** by default, allowing local development and frontend testing without immediate smart contract deployment.
 
-## Tech Stack
+To transition the application to live on-chain operations on Avalanche Fuji, follow the deployment guidelines below:
 
-- **Chain**: Avalanche C-Chain (Fuji Testnet, Chain ID 43113)
-- **Smart Contract**: Solidity 0.8.20 (no OpenZeppelin dependency)
-- **Backend**: Deno + ethers v6 (Supabase Edge Function)
-- **Frontend (web)**: React + Vite (this demo)
-- **Frontend (mobile)**: Flutter Material 3 (see `frontend/`)
-- **Database**: Supabase (PostgreSQL with RLS)
-- **USDC**: `0x5425890298aed601595a70AB815c96711a31Bc65` (Fuji)
+### Smart Contract Deployment
+
+1. **Navigate to the deployment directory**:
+   ```bash
+   cd deploy
+   ```
+
+2. **Generate a Relayer/Deployer Wallet**:
+   Run the compilation and deployment helper script without arguments to generate a new key pair:
+   ```bash
+   node compile-deploy.mjs
+   ```
+
+3. **Fund the Deployer Address**:
+   Go to the [Avalanche Faucet](https://faucet.avax.network/), select "Fuji" testnet, and request test AVAX to the generated address.
+
+4. **Deploy the Smart Contract**:
+   Deploy NexPay to Fuji Testnet using your funded private key:
+   ```bash
+   node compile-deploy.mjs <PRIVATE_KEY>
+   ```
+
+5. **Configure Secrets**:
+   Apply the generated output variables as secrets/environment variables in your backend/Supabase dashboard:
+   - `NEXPAY_CONTRACT_ADDRESS`: The deployed contract address.
+   - `RELAYER_PRIVATE_KEY`: The relayer wallet private key.
